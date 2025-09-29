@@ -6,9 +6,12 @@ A Python-based tool that analyzes startup pitch decks (PDF/PowerPoint) and gener
 
 - **Multi-format Support**: Analyzes PDF and PowerPoint (PPT/PPTX) pitch decks
 - **AI-Powered Analysis**: Uses OpenRouter API with Claude 3.5 Sonnet for intelligent analysis
+- **Image Analysis**: Processes visual content including charts, graphs, and diagrams from pitch decks
+- **Image-Only PDF Support**: Handles scanned PDFs with no extractable text content
+- **URL Research**: Extracts links and performs LLM-based research on companies and social media profiles
 - **Investment Focus**: Tailored analysis for investment managers and VCs
 - **Structured Reports**: Generates well-formatted markdown reports
-- **No Web Scraping**: Only processes local files, no external data collection
+- **No Web Scraping**: Only processes local files, no external data collection from your machine
 
 ## Installation
 
@@ -81,6 +84,7 @@ The tool generates a comprehensive markdown report including:
 8. **Risk Assessment** - Market, execution, financial, and regulatory risks
 9. **Investment Recommendation** - Overall attractiveness, strengths, concerns
 10. **Additional Research Suggestions** - Due diligence areas, comparable companies
+11. **Information Extracted from Online Research** - LLM-based research on URLs and companies found in the pitch deck
 
 ## Project Structure
 
@@ -93,6 +97,9 @@ pitch-deck-analyzer/
 │   ├── extractors/         # Content extraction modules
 │   │   ├── pdf_extractor.py
 │   │   └── ppt_extractor.py
+│   ├── utils/              # Utility modules
+│   │   ├── image_processor.py  # Image processing and filtering
+│   │   └── url_extractor.py    # URL extraction and categorization
 │   └── ai/                 # AI integration
 │       └── openrouter_client.py
 ├── environment.yml         # Conda environment
@@ -138,8 +145,8 @@ The tool includes comprehensive error handling for:
    - Check the file path and ensure the file exists
 
 3. **"No text content found"**
-   - The pitch deck may be image-based or corrupted
-   - Try a different file or check if the PDF/PPT contains extractable text
+   - For image-only PDFs, the tool will automatically analyze visual content
+   - The system now supports scanned PDFs and image-based pitch decks
 
 4. **API connection errors**
    - Check your internet connection

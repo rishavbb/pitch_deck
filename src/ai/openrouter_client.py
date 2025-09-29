@@ -25,13 +25,13 @@ class OpenRouterClient:
         }
         self.image_processor = ImageProcessor()
     
-    def analyze_pitch_deck(self, content: str, images: List[Image.Image] = None, company_name: str = "Unknown Company") -> Dict[str, Any]:
+    def analyze_pitch_deck(self, content: str, images: List[bytes] = None, company_name: str = None, urls_info: str = None) -> Dict[str, Any]:
         """
         Send pitch deck content and images to LLM for comprehensive analysis.
         
         Args:
             content (str): Extracted text content from pitch deck
-            images (List[Image.Image]): List of extracted images from pitch deck
+            images (List[bytes]): List of extracted images from pitch deck
             company_name (str): Name of the company (if known)
             
         Returns:
@@ -50,6 +50,23 @@ You are an expert investment analyst specializing in early-stage startup evaluat
 
 **VISUAL CONTENT:**
 {"I will also analyze the accompanying images/charts/graphs from the pitch deck to provide insights on visual elements like financial projections, market data, product screenshots, team photos, and business model diagrams." if images and len(images) > 0 else "No visual content available for analysis."}
+
+{urls_info if urls_info else ""}
+
+**URL EXTRACTION FROM IMAGES:**
+{"IMPORTANT: Please carefully examine all images for any URLs, website addresses, social media handles, email addresses, or company links that appear in the visual content. Extract all visible URLs and links from the images and include them in your analysis." if images and len(images) > 0 else ""}
+
+**ONLINE RESEARCH INSTRUCTIONS:**
+{'''Please use your knowledge base to research any companies, URLs, or social media profiles you find (either in text or images) and provide additional insights about:
+- Company background and recent developments
+- Market position and competitive landscape
+- Financial performance (if publicly available)
+- Leadership team and key personnel
+- Recent news, partnerships, or funding rounds
+- Social media presence and customer engagement
+- Any other relevant information that would be valuable for investment analysis
+
+Please include this research in a separate "Information Extracted from Online Research" section at the end of your analysis. If you extract URLs from images, list them first before providing the research.''' if images and len(images) > 0 or urls_info else ""}
 
 **ANALYSIS REQUIREMENTS:**
 Please provide a detailed analysis covering the following areas:
@@ -139,7 +156,7 @@ If any information is missing from the pitch deck, clearly indicate what additio
             print(f"📸 Added {len(prepared_images)} images for analysis")
         
         # Choose model based on whether we have images
-        model = "anthropic/claude-3.5-sonnet" if not images or len(images) == 0 else "anthropic/claude-3-5-sonnet-20241022"
+        model = "anthropic/claude-3.5-sonnet" if not images or len(images) == 0 else "anthropic/claude-3.5-sonnet"
         
         try:
             response = requests.post(

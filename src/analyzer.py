@@ -1,8 +1,12 @@
 import os
 from typing import Dict, Any, Optional
-from .extractors import PDFExtractor, PPTExtractor
-from .ai import OpenRouterClient
+from .extractors.pdf_extractor import PDFExtractor
+from .extractors.ppt_extractor import PPTExtractor
+from .ai.openrouter_client import OpenRouterClient
 from .report_generator import ReportGenerator
+from .utils.url_extractor import URLExtractor
+import os
+from pathlib import Path
 
 class PitchDeckAnalyzer:
     """Main orchestrator for pitch deck analysis."""
@@ -12,6 +16,7 @@ class PitchDeckAnalyzer:
         self.ppt_extractor = PPTExtractor()
         self.ai_client = OpenRouterClient(openrouter_api_key)
         self.report_generator = ReportGenerator()
+        self.url_extractor = URLExtractor()
     
     def analyze_pitch_deck(self, file_path: str, output_path: Optional[str] = None) -> Dict[str, Any]:
         """
@@ -77,6 +82,14 @@ class PitchDeckAnalyzer:
             
             print(f"✅ Successfully extracted {len(full_text)} characters of content")
             
+            # Extract URLs from content for LLM research
+            print("🔍 Extracting URLs and links...")
+            categorized_urls = self.url_extractor.extract_urls_from_text(full_text)
+            urls_info = None
+            if categorized_urls:
+                urls_info = self.url_extractor.format_urls_for_research(categorized_urls)
+                print(f"🌐 Found {sum(len(urls) for urls in categorized_urls.values())} URLs for research")
+            
             # Send content to LLM for analysis
             print("🤖 Sending content to AI for analysis...")
             company_name = self._extract_company_name_from_content(full_text, extraction_result)
@@ -84,7 +97,7 @@ class PitchDeckAnalyzer:
             if images:
                 print(f"🖼️ Found {len(images)} images in pitch deck")
             
-            analysis_result = self.ai_client.analyze_pitch_deck(full_text, images, company_name)
+            analysis_result = self.ai_client.analyze_pitch_deck(full_text, images, company_name, urls_info)
             
             # Generate report
             print("📝 Generating analysis report...")
