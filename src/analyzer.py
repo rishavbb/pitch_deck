@@ -5,6 +5,8 @@ from .extractors.ppt_extractor import PPTExtractor
 from .ai.openrouter_client import OpenRouterClient
 from .report_generator import ReportGenerator
 from .utils.url_extractor import URLExtractor
+from .utils.web_scraper import WebScraper
+from .utils.image_url_extractor import ImageURLExtractor
 import os
 from pathlib import Path
 
@@ -17,6 +19,8 @@ class PitchDeckAnalyzer:
         self.ai_client = OpenRouterClient(openrouter_api_key)
         self.report_generator = ReportGenerator()
         self.url_extractor = URLExtractor()
+        self.web_scraper = WebScraper()
+        self.image_url_extractor = ImageURLExtractor(openrouter_api_key)
     
     def analyze_pitch_deck(self, file_path: str, output_path: Optional[str] = None) -> Dict[str, Any]:
         """
@@ -85,10 +89,37 @@ class PitchDeckAnalyzer:
             # Extract URLs from content for LLM research
             print("🔍 Extracting URLs and links...")
             categorized_urls = self.url_extractor.extract_urls_from_text(full_text)
-            urls_info = None
+            all_urls = []
+            
+            # For text-based URLs
             if categorized_urls:
-                urls_info = self.url_extractor.format_urls_for_research(categorized_urls)
-                print(f"🌐 Found {sum(len(urls) for urls in categorized_urls.values())} URLs for research")
+                for url_list in categorized_urls.values():
+                    all_urls.extend(url_list)
+                print(f"🌐 Found {len(all_urls)} URLs from text content")
+            
+            # For image-only PDFs, extract URLs from images
+            if images and len(images) > 0 and not categorized_urls:
+                print("🖼️ Extracting URLs from images...")
+                image_urls = self.image_url_extractor.extract_urls_from_images(images)
+                all_urls.extend(image_urls)
+                print(f"🌐 Found {len(image_urls)} URLs from images")
+            
+            urls_info = None
+            scraped_content = None
+            
+            if all_urls:
+                # Format URLs for research
+                if categorized_urls:
+                    urls_info = self.url_extractor.format_urls_for_research(categorized_urls)
+                else:
+                    # Create simple format for image-extracted URLs
+                    urls_info = "\n**URLs Found in Images:**\n" + "\n".join([f"- {url}" for url in all_urls]) + "\n"
+                
+                # Perform web scraping on found URLs
+                print("🕷️ Scraping URLs for detailed content...")
+                scraped_data = self.web_scraper.scrape_multiple_urls(all_urls)
+                scraped_content = self.web_scraper.format_scraped_content_for_llm(scraped_data)
+                print(f"✅ Scraped {len([d for d in scraped_data.values() if d.get('status') == 'success'])} URLs successfully")
             
             # Send content to LLM for analysis
             print("🤖 Sending content to AI for analysis...")
@@ -97,7 +128,7 @@ class PitchDeckAnalyzer:
             if images:
                 print(f"🖼️ Found {len(images)} images in pitch deck")
             
-            analysis_result = self.ai_client.analyze_pitch_deck(full_text, images, company_name, urls_info)
+            analysis_result = self.ai_client.analyze_pitch_deck(full_text, images, company_name, urls_info, scraped_content)
             
             # Generate report
             print("📝 Generating analysis report...")

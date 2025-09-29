@@ -25,7 +25,7 @@ class OpenRouterClient:
         }
         self.image_processor = ImageProcessor()
     
-    def analyze_pitch_deck(self, content: str, images: List[bytes] = None, company_name: str = None, urls_info: str = None) -> Dict[str, Any]:
+    def analyze_pitch_deck(self, content: str, images: List[bytes] = None, company_name: str = None, urls_info: str = None, scraped_content: str = None) -> Dict[str, Any]:
         """
         Send pitch deck content and images to LLM for comprehensive analysis.
         
@@ -53,20 +53,23 @@ You are an expert investment analyst specializing in early-stage startup evaluat
 
 {urls_info if urls_info else ""}
 
+{scraped_content if scraped_content else ""}
+
 **URL EXTRACTION FROM IMAGES:**
 {"IMPORTANT: Please carefully examine all images for any URLs, website addresses, social media handles, email addresses, or company links that appear in the visual content. Extract all visible URLs and links from the images and include them in your analysis." if images and len(images) > 0 else ""}
 
 **ONLINE RESEARCH INSTRUCTIONS:**
-{'''Please use your knowledge base to research any companies, URLs, or social media profiles you find (either in text or images) and provide additional insights about:
+{'''Based on the URLs found and the detailed web scraping results provided above, please analyze this information and provide comprehensive insights about:
 - Company background and recent developments
 - Market position and competitive landscape
 - Financial performance (if publicly available)
 - Leadership team and key personnel
 - Recent news, partnerships, or funding rounds
 - Social media presence and customer engagement
+- Product offerings and business model details
 - Any other relevant information that would be valuable for investment analysis
 
-Please include this research in a separate "Information Extracted from Online Research" section at the end of your analysis. If you extract URLs from images, list them first before providing the research.''' if images and len(images) > 0 or urls_info else ""}
+Please include this research in a separate section titled "Information Available Online from the Links in the Document" at the end of your analysis. Use both the scraped content and your knowledge base to provide the most comprehensive analysis possible.''' if scraped_content or urls_info else ""}
 
 **ANALYSIS REQUIREMENTS:**
 Please provide a detailed analysis covering the following areas:
@@ -89,52 +92,24 @@ Please provide a detailed analysis covering the following areas:
    - Competitive landscape
    - Market timing and opportunity
 
-4. **PRODUCT/SERVICE EVALUATION**
-   - Product description and unique value proposition
-   - Technology stack and innovation level
-   - Product-market fit evidence
-   - Competitive advantages and moats
-
-5. **TEAM ASSESSMENT**
-   - Founder backgrounds and expertise
-   - Team composition and key personnel
-   - Advisory board and investors
-   - Execution capability assessment
-
-6. **FINANCIAL ANALYSIS**
+4. **FINANCIAL ANALYSIS**
    - Current financial status
    - Revenue projections and growth trajectory
    - Funding requirements and use of funds
    - Key financial metrics and assumptions
 
-7. **TRACTION AND MILESTONES**
-   - Customer traction and user metrics
-   - Revenue growth and key achievements
-   - Partnerships and strategic relationships
-   - Product development milestones
 
-8. **RISK ASSESSMENT**
-   - Market risks and competitive threats
-   - Execution risks and operational challenges
-   - Financial risks and funding concerns
-   - Regulatory and compliance risks
-
-9. **INVESTMENT RECOMMENDATION**
-   - Overall investment attractiveness (1-10 scale)
-   - Key strengths and opportunities
-   - Major concerns and red flags
-   - Recommended due diligence areas
-
-10. **ADDITIONAL RESEARCH SUGGESTIONS**
-    - Key questions for management team
-    - Areas requiring deeper investigation
-    - Comparable companies for benchmarking
-    - Industry experts to consult
+5. **INFORMATION AVAILABLE ONLINE FROM THE LINKS IN THE DOCUMENT**
+    - Detailed analysis of scraped web content
+    - Company background from official websites
+    - Social media presence and engagement
+    - Product/service offerings and business model validation
+    - Market positioning and competitive analysis
+    - Contact information and professional networks
 
 **OUTPUT FORMAT:**
 Please structure your response as a well-formatted markdown document suitable for an investment manager. Use clear headings, bullet points, and professional language. Be specific and actionable in your recommendations.
-
-If any information is missing from the pitch deck, clearly indicate what additional information would be valuable for a complete assessment.
+Also, make sure INFORMATION AVAILABLE ONLINE FROM THE LINKS IN THE DOCUMENT is included in the analysis. I want to have a very detailed opinion on this.
 """
         
         # Add text content to message
