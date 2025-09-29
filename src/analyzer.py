@@ -60,22 +60,31 @@ class PitchDeckAnalyzer:
             
             # Check if we have content to analyze
             full_text = extraction_result.get('full_text', '').strip()
-            if not full_text:
+            images = extraction_result.get('images', [])
+            
+            if not full_text and not images:
                 return {
                     'success': False,
-                    'error': "No text content found in the pitch deck. This PDF appears to contain only images/scanned content. Please try:\n" +
-                            "   • A PDF with selectable text content\n" +
-                            "   • Converting the PDF to text using OCR tools\n" +
-                            "   • Using the original PowerPoint file instead",
+                    'error': "No text or image content found in the pitch deck. The file may be corrupted or empty.",
                     'report_path': None
                 }
+            
+            # Handle image-only PDFs
+            if not full_text and images:
+                print(f"📄 No text content found, but found {len(images)} images")
+                print("🖼️ Proceeding with image-only analysis...")
+                full_text = "This pitch deck contains only visual content (images/charts/diagrams). Please analyze the visual elements to extract all relevant information about the company, business model, market opportunity, team, financials, and investment potential."
             
             print(f"✅ Successfully extracted {len(full_text)} characters of content")
             
             # Send content to LLM for analysis
             print("🤖 Sending content to AI for analysis...")
             company_name = self._extract_company_name_from_content(full_text, extraction_result)
-            analysis_result = self.ai_client.analyze_pitch_deck(full_text, company_name)
+            
+            if images:
+                print(f"🖼️ Found {len(images)} images in pitch deck")
+            
+            analysis_result = self.ai_client.analyze_pitch_deck(full_text, images, company_name)
             
             # Generate report
             print("📝 Generating analysis report...")

@@ -1,13 +1,15 @@
 import requests
 import json
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 import os
 from dotenv import load_dotenv
+from PIL import Image
+from ..utils.image_processor import ImageProcessor
 
 load_dotenv()
 
 class OpenRouterClient:
-    """Client for interacting with OpenRouter API."""
+    """Client for interacting with OpenRouter API with multimodal support."""
     
     def __init__(self, api_key: Optional[str] = None):
         self.api_key = api_key or os.getenv('OPENROUTER_API_KEY')
@@ -21,24 +23,33 @@ class OpenRouterClient:
             "HTTP-Referer": "https://github.com/pitch-deck-analyzer",
             "X-Title": "Pitch Deck Analyzer"
         }
+        self.image_processor = ImageProcessor()
     
-    def analyze_pitch_deck(self, content: str, company_name: str = "Unknown Company") -> Dict[str, Any]:
+    def analyze_pitch_deck(self, content: str, images: List[Image.Image] = None, company_name: str = "Unknown Company") -> Dict[str, Any]:
         """
-        Send pitch deck content to LLM for comprehensive analysis.
+        Send pitch deck content and images to LLM for comprehensive analysis.
         
         Args:
             content (str): Extracted text content from pitch deck
+            images (List[Image.Image]): List of extracted images from pitch deck
             company_name (str): Name of the company (if known)
             
         Returns:
             Dict[str, Any]: Analysis results from the LLM
         """
         
-        analysis_prompt = f"""
+        # Prepare message content
+        message_content = []
+        
+        # Create comprehensive analysis prompt
+        full_prompt = f"""
 You are an expert investment analyst specializing in early-stage startup evaluation. Analyze the following pitch deck content and provide a comprehensive investment analysis report.
 
-**PITCH DECK CONTENT:**
+**PITCH DECK TEXT CONTENT:**
 {content}
+
+**VISUAL CONTENT:**
+{"I will also analyze the accompanying images/charts/graphs from the pitch deck to provide insights on visual elements like financial projections, market data, product screenshots, team photos, and business model diagrams." if images and len(images) > 0 else "No visual content available for analysis."}
 
 **ANALYSIS REQUIREMENTS:**
 Please provide a detailed analysis covering the following areas:
@@ -108,17 +119,38 @@ Please structure your response as a well-formatted markdown document suitable fo
 
 If any information is missing from the pitch deck, clearly indicate what additional information would be valuable for a complete assessment.
 """
-
+        
+        # Add text content to message
+        message_content.append({
+            "type": "text",
+            "text": full_prompt
+        })
+        
+        # Add images if available
+        if images and len(images) > 0:
+            # Filter and prepare images
+            filtered_images = self.image_processor.filter_relevant_images(images, max_images=8)
+            prepared_images = self.image_processor.prepare_images_for_llm(filtered_images)
+            
+            # Add each image to message content
+            for img_data in prepared_images:
+                message_content.append(img_data)
+            
+            print(f"📸 Added {len(prepared_images)} images for analysis")
+        
+        # Choose model based on whether we have images
+        model = "anthropic/claude-3.5-sonnet" if not images or len(images) == 0 else "anthropic/claude-3-5-sonnet-20241022"
+        
         try:
             response = requests.post(
                 f"{self.base_url}/chat/completions",
                 headers=self.headers,
                 json={
-                    "model": "anthropic/claude-3.5-sonnet",
+                    "model": model,
                     "messages": [
                         {
                             "role": "user",
-                            "content": analysis_prompt
+                            "content": message_content
                         }
                     ],
                     "max_tokens": 4000,
@@ -132,8 +164,9 @@ If any information is missing from the pitch deck, clearly indicate what additio
             return {
                 'success': True,
                 'analysis': result['choices'][0]['message']['content'],
-                'model_used': result.get('model', 'anthropic/claude-3.5-sonnet'),
-                'usage': result.get('usage', {})
+                'model_used': result.get('model', model),
+                'usage': result.get('usage', {}),
+                'images_analyzed': len(images) if images else 0
             }
             
         except requests.exceptions.RequestException as e:
