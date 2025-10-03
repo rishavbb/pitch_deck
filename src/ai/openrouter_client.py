@@ -121,7 +121,7 @@ Also, make sure INFORMATION AVAILABLE ONLINE FROM THE LINKS IN THE DOCUMENT is i
         # Add images if available
         if images and len(images) > 0:
             # Filter and prepare images
-            filtered_images = self.image_processor.filter_relevant_images(images, max_images=8)
+            filtered_images = self.image_processor.filter_relevant_images(images)
             prepared_images = self.image_processor.prepare_images_for_llm(filtered_images)
             
             # Add each image to message content

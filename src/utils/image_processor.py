@@ -86,17 +86,21 @@ class ImageProcessor:
         
         return prepared_images
     
-    def filter_relevant_images(self, images: List[Image.Image], max_images: int = 10) -> List[Image.Image]:
+    def filter_relevant_images(self, images: List[Image.Image], max_images: int = None) -> List[Image.Image]:
         """
-        Filter and select the most relevant images for analysis.
+        Filter and select images for analysis. Now processes all images by default.
         
         Args:
             images (List[Image.Image]): List of extracted images
-            max_images (int): Maximum number of images to return
+            max_images (int, optional): Maximum number of images to return (None = all images)
             
         Returns:
             List[Image.Image]: Filtered list of images
         """
+        # If no limit specified, return all images
+        if max_images is None:
+            return images
+            
         if len(images) <= max_images:
             return images
         

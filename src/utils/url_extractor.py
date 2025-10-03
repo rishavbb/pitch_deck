@@ -45,12 +45,12 @@ class URLExtractor:
             return {}
         
         # Find all URLs
-        urls = self.url_pattern.findall(text)
+        urls = list(set(self.url_pattern.findall(text)))
         
         # Also look for domain mentions without http/https
         domain_mentions = []
         for platform, pattern in self.domain_patterns.items():
-            matches = pattern.findall(text)
+            matches = list(set(pattern.findall(text)))
             for match in matches:
                 if platform == 'website':
                     domain_mentions.append(f"https://{match}")

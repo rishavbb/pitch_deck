@@ -43,7 +43,7 @@ class ImageURLExtractor:
             return []
         
         # Prepare images for LLM
-        filtered_images = self.image_processor.filter_relevant_images(images, max_images=8)
+        filtered_images = self.image_processor.filter_relevant_images(images)
         prepared_images = self.image_processor.prepare_images_for_llm(filtered_images)
         
         # Create message content
